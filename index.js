@@ -45,6 +45,7 @@ function getWhoisInfo(server, domain) {
 
             if (regex.noMatchFor.test(line)) {
                 return resolve({
+                    domain: domain,
                     available: true,
                     server: server,
                     timing: {
@@ -136,6 +137,7 @@ function getWhoisInfo(server, domain) {
             });
 
             resolve({
+                domain: domain,
                 available: false,
                 server: server,
                 data: data,
@@ -158,7 +160,19 @@ function getWhoisInfoAll(domain) {
 
 }
 
+function getBestServer() {
+    return getWhoisInfoAll('example.com').then(results => {
+
+        const first = results.sort((left, right) =>
+            (left.timing.end - left.timing.connect)
+            - (right.timing.end - right.timing.connect)).shift();
+
+        return first.server;
+
+    });
+}
+
 exports.servers = servers;
 exports.getWhoisInfo = getWhoisInfo;
 exports.getWhoisInfoAll = getWhoisInfoAll;
-
+exports.getBestServer = getBestServer;
