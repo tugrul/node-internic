@@ -1,0 +1,42 @@
+{
+    "chicago": {
+        "ip": "199.7.48.74", "asn": "AS36617",
+        "host": "whois.chi2.verisign.com"
+    },
+    "newyork": {
+        "ip": "199.7.50.74", "asn": "AS36619",
+        "host": "whois.nyc3.verisign.com"
+    },
+    "miami": {
+        "ip": "199.7.51.74", "asn": "AS36621",
+        "host": "whois.mia1.verisign.com"
+    },
+    "sanfrancisco": {
+        "ip": "199.7.54.74", "asn": "AS36624",
+        "host": "whois.sfo1.verisign.com"
+    },
+    "amsterdam": {
+        "ip": "199.7.55.74", "asn": "AS36623",
+        "host": "whois.ams1.verisign.com"
+    },
+    "stockholm": {
+        "ip": "199.7.56.74", "asn": "AS36616",
+        "host": "whois.stk1.verisign.com"
+    },
+    "london": {
+        "ip": "199.7.58.74", "asn": "AS36625",
+        "host": "whois.lon3.verisign.com"
+    },
+    "singapore": {
+        "ip": "199.7.60.74", "asn": "AS36630",
+        "host": "whois.sin1.verisign.com"
+    },
+    "madrid": {
+        "ip": "199.7.73.74", "asn": "AS36627",
+        "host": "whois.mad1.verisign.com"
+    },
+    "seattle": {
+        "ip": "199.7.74.74", "asn": "AS36632",
+        "host": "whois.sea1.verisign.com"
+    }
+}

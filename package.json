@@ -1,0 +1,23 @@
+{
+  "name": "internic",
+  "version": "1.0.0",
+  "description": "InterNIC WHOIS tool",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/tugrul/node-internic.git"
+  },
+  "keywords": [
+    "internic",
+    "whois"
+  ],
+  "author": "Tugrul Topuz <tugrultopuz@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tugrul/node-internic/issues"
+  },
+  "homepage": "https://github.com/tugrul/node-internic#readme"
+}
