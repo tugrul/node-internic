@@ -4,7 +4,7 @@ const net = require('net');
 const readline = require('readline');
 
 const regex = {
-    property: /^ {3}(.+): (.+)$/,
+    property: /^ {3}(.+):(?: (.+))?$/,
     lastUpdate: /^>>> Last update of whois database: (.+) <<<$/,
     noMatchFor: /^No match for "([^"]+)"\.$/
 };
@@ -61,7 +61,7 @@ function getWhoisInfo(server, domain) {
                 return lines.push({
                     type: 'property',
                     label: property[1],
-                    value: property[2]});
+                    value: property[2] || null});
             }
 
             const lastUpdate = regex.lastUpdate.exec(line);
