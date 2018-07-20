@@ -9,6 +9,63 @@ const regex = {
     noMatchFor: /^No match for "([^"]+)"\.$/
 };
 
+function isDomainAvailable(server, domain) {
+
+    return new Promise((resolve, reject) => {
+
+        const startTime = Date.now();
+        let connectDelay = 0;
+
+        const client = net.connect(43, server, () => {
+            connectDelay = Date.now() - startTime;
+            client.write(domain + '\n', 'ascii');
+        });
+
+        client.setTimeout(5000);
+
+        client.on('error', reject);
+        client.on('timeout', () => {
+            client.destroy(new Error('Network Connect Timeout for ' + server));
+        })
+
+        const reader = readline.createInterface({
+            input: client,
+            crlfDelay: Infinity
+        });
+
+        reader.on('line', (line) => {
+
+            if (regex.noMatchFor.test(line)) {
+                return resolve({
+                    domain: domain,
+                    available: true,
+                    server: server,
+                    timing: {
+                        connect: connectDelay,
+                        end: Date.now() - startTime
+                    }
+                });
+            }
+
+        });
+
+        reader.on('close', () => {
+
+            return resolve({
+                domain: domain,
+                available: false,
+                server: server,
+                timing: {
+                    connect: connectDelay,
+                    end: Date.now() - startTime
+                }
+            });
+
+        });
+
+    });
+}
+
 function getWhoisInfo(server, domain) {
 
     return new Promise((resolve, reject) => {
@@ -44,15 +101,8 @@ function getWhoisInfo(server, domain) {
             }
 
             if (regex.noMatchFor.test(line)) {
-                return resolve({
-                    domain: domain,
-                    available: true,
-                    server: server,
-                    timing: {
-                        connect: connectDelay,
-                        end: Date.now() - startTime
-                    }
-                });
+                return lines.push({type: 'status', value: true});
+
             }
 
             const property = regex.property.exec(line);
@@ -87,6 +137,7 @@ function getWhoisInfo(server, domain) {
             let section = {};
 
             const data = {
+                available: false,
                 lastUpdate: null,
                 sections: [],
                 texts: []
@@ -101,6 +152,11 @@ function getWhoisInfo(server, domain) {
                     }
 
                     return prev = 'empty';
+                }
+
+                if (line.type === 'status') {
+                    data.available = line.value;
+                    return prev = 'status';
                 }
 
                 if (line.type === 'lastUpdate') {
@@ -176,3 +232,4 @@ exports.servers = servers;
 exports.getWhoisInfo = getWhoisInfo;
 exports.getWhoisInfoAll = getWhoisInfoAll;
 exports.getBestServer = getBestServer;
+exports.isDomainAvailable = isDomainAvailable;
