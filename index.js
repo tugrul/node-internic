@@ -9,40 +9,70 @@ const regex = {
     noMatchFor: /^No match for "([^"]+)"\.$/
 };
 
-function isDomainAvailable(server, domain) {
+function Internic({server = 'whois.verisign-grs.com', timeout = 3000, testQuery = 'example.com'} = {}) {
+
+    this.server = server;
+    this.timeout = timeout;
+    this.testQuery = testQuery;
+
+}
+
+Internic.prototype._getReader = function _getReader(domain, {server = this.server, timeout = this.timeout} = {}) {
+
+
+    if (typeof server !== 'string' && server instanceof Array) {
+        server = server[Math.round(Math.random() * (server.length - 1))];
+    }
+
+    const startTime = Date.now();
+
+    const client = net.connect(43, server, () => {
+
+        reader.connectDelay = Date.now() - startTime;
+        reader.startTime = startTime;
+        reader.targetServer = server;
+
+        client.write(domain + '\n', 'ascii');
+    });
+
+    client.setTimeout(timeout);
+
+    client.on('timeout', () => {
+        client.destroy(new Error('Network Connect Timeout for ' + server));
+    })
+
+    const reader = readline.createInterface({
+        input: client,
+        crlfDelay: Infinity
+    });
+
+
+    return {client, reader};
+};
+
+Internic.prototype.isDomainAvailable = function isDomainAvailable(domain, options) {
 
     return new Promise((resolve, reject) => {
 
-        const startTime = Date.now();
-        let connectDelay = 0;
+        let isResolved = false;
 
-        const client = net.connect(43, server, () => {
-            connectDelay = Date.now() - startTime;
-            client.write(domain + '\n', 'ascii');
-        });
-
-        client.setTimeout(5000);
+        const {client, reader} = this._getReader(domain, options);
 
         client.on('error', reject);
-        client.on('timeout', () => {
-            client.destroy(new Error('Network Connect Timeout for ' + server));
-        })
-
-        const reader = readline.createInterface({
-            input: client,
-            crlfDelay: Infinity
-        });
 
         reader.on('line', (line) => {
 
             if (regex.noMatchFor.test(line)) {
+
+                isResolved = true;
+
                 return resolve({
                     domain: domain,
                     available: true,
-                    server: server,
+                    server: reader.targetServer,
                     timing: {
-                        connect: connectDelay,
-                        end: Date.now() - startTime
+                        connect: reader.connectDelay,
+                        end: Date.now() - reader.startTime
                     }
                 });
             }
@@ -51,44 +81,28 @@ function isDomainAvailable(server, domain) {
 
         reader.on('close', () => {
 
-            return resolve({
+            return isResolved || resolve({
                 domain: domain,
                 available: false,
-                server: server,
+                server: reader.targetServer,
                 timing: {
-                    connect: connectDelay,
-                    end: Date.now() - startTime
+                    connect: reader.connectDelay,
+                    end: Date.now() - reader.startTime
                 }
             });
 
         });
 
     });
-}
+};
 
-function getWhoisInfo(server, domain) {
+Internic.prototype.getWhoisInfo = function getWhoisInfo(domain, options) {
 
     return new Promise((resolve, reject) => {
 
-        const startTime = Date.now();
-        let connectDelay = 0;
-
-        const client = net.connect(43, server, () => {
-            connectDelay = Date.now() - startTime;
-            client.write(domain + '\n', 'ascii');
-        });
-
-        client.setTimeout(5000);
+        const {client, reader} = this._getReader(domain, options);
 
         client.on('error', reject);
-        client.on('timeout', () => {
-            client.destroy(new Error('Network Connect Timeout for ' + server));
-        })
-
-        const reader = readline.createInterface({
-            input: client,
-            crlfDelay: Infinity
-        });
 
         const lines = [];
 
@@ -194,12 +208,11 @@ function getWhoisInfo(server, domain) {
 
             resolve({
                 domain: domain,
-                available: false,
-                server: server,
+                server: reader.targetServer,
                 data: data,
                 timing: {
-                    connect: connectDelay,
-                    end: Date.now() - startTime
+                    connect: reader.connectDelay,
+                    end: Date.now() - reader.startTime
                 }
             });
 
@@ -209,27 +222,33 @@ function getWhoisInfo(server, domain) {
 
 };
 
-function getWhoisInfoAll(domain) {
+Internic.prototype.getWhoisInfoAll = function getWhoisInfoAll(domain, timeout) {
 
     return Promise.all(Object.keys(servers)
-        .map(name => getWhoisInfo(servers[name].ip, domain)));
+        .map(name => this.getWhoisInfo(domain, {server: servers[name].ip, timeout: timeout || this.timeout})));
 
-}
+};
 
-function getBestServer() {
-    return getWhoisInfoAll('example.com').then(results => {
+Internic.prototype.getBestServer = function getBestServer(count, timing) {
+    return this.getWhoisInfoAll(this.testQuery, 10000).then(results => {
 
-        const first = results.sort((left, right) =>
+        const sorted = results.sort((left, right) =>
             (left.timing.end - left.timing.connect)
-            - (right.timing.end - right.timing.connect)).shift();
+            - (right.timing.end - right.timing.connect));
 
-        return first.server;
+        if (count && count > 1) {
+            return sorted.slice(0, count).map(item => timing ? {server: item.server, timing: item.timing} : item.server);
+        }
+
+        const result = sorted.shift();
+        return timing ? {server: result.server, timing: result.timing} : result.server;
 
     });
-}
+};
 
-exports.servers = servers;
-exports.getWhoisInfo = getWhoisInfo;
-exports.getWhoisInfoAll = getWhoisInfoAll;
-exports.getBestServer = getBestServer;
-exports.isDomainAvailable = isDomainAvailable;
+const internic = module.exports = new Internic();
+
+internic.servers = servers;
+internic.defaults = options => new Internic(options);
+
+

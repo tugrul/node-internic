@@ -1,6 +1,6 @@
 {
   "name": "internic",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "InterNIC WHOIS tool",
   "main": "index.js",
   "scripts": {
